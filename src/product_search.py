@@ -1,15 +1,15 @@
 ﻿import pandas as pd
 
-from src.ranking import add_bayesian_score
+from src.ranking import add_bayesian_score, add_recommend_score, add_final_score
 
-PRODUCTS_PATH = "data/processed/sample_products_3k.parquet"
+PRODUCTS_PATH = "data/processed/product_cards.parquet"
 _cache = {}
 
 
 def load_products():
     if "df" not in _cache:
         df = pd.read_parquet(PRODUCTS_PATH)
-        _cache["df"] = add_bayesian_score(df, m=20)
+        _cache["df"] = add_final_score(add_recommend_score(add_bayesian_score(df, m=20)))
     return _cache["df"]
 
 
@@ -47,6 +47,11 @@ def search_products(query="", filters=None, top_k=10):
     if query:
         df = df[df["title_fa"].fillna("").str.contains(query, regex=False)]
 
-    df = df.sort_values("bayes_score", ascending=False).head(top_k)
-    cols = ["id", "title_fa", "Brand", "Price", "rate5", "Rate_cnt", "bayes_score"]
+    df = df.sort_values("final_score", ascending=False).head(top_k)
+    cols = ["id", "title_fa", "Brand", "Price", "rate5", "Rate_cnt", "bayes_score", "n_labeled_comments", "recommended_pct", "final_score"]
     return df[cols].to_dict(orient="records")
+
+
+
+
+
