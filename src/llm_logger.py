@@ -51,3 +51,17 @@ def embed(texts, model="openai/text-embedding-3-small", task="embedding"):
     resp = client.embeddings.create(model=model, input=texts)
     _record(task, model, time.time() - start, resp.usage)
     return resp
+
+
+def _log_cache_hit(task, model, latency):
+    _log({
+        "time": datetime.now().isoformat(timespec="seconds"),
+        "task": task + "_cached",
+        "model": model,
+        "latency_s": round(latency, 4),
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "cost_usd": 0,
+        "cost_toman": 0,
+    })
