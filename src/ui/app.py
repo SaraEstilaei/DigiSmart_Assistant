@@ -7,7 +7,14 @@ import pandas as pd
 import streamlit as st
 
 from src.compare import compare
+from src.manager import brand_summary, list_categories, low_recommend_products, top_complaints
 from src.product_search import search_products
+
+CAT_FA = {
+    "beauty": "زیبایی و سلامت", "book & stationary & art": "کتاب، لوازم‌التحریر و هنر",
+    "clothe": "پوشاک", "toys and kids": "اسباب‌بازی و کودک",
+    "rural goods": "لوازم خانه", "travel": "سفر",
+}
 
 COLS = {
     "id": "شناسه", "title_fa": "عنوان", "Brand": "برند",
@@ -45,7 +52,7 @@ st.markdown(
 )
 st.title("🛒 دستیار هوشمند خرید")
 
-tab_search, tab_compare = st.tabs(["🔍 جست‌وجوی محصول", "⚖️ مقایسه"])
+tab_search, tab_compare, tab_manager = st.tabs(["🔍 جست‌وجوی محصول", "⚖️ مقایسه", "📊 تحلیل مدیر"])
 
 with tab_search:
     st.subheader("جست‌وجو با فیلتر")
@@ -99,3 +106,32 @@ with tab_compare:
                         show_items(ev["disadvantages"])
             st.markdown(out["summary"])
             st.caption("از کش خوانده شد ⚡" if out.get("from_cache") else "از مدل زبانی گرفته شد")
+
+
+
+
+with tab_manager:
+    st.subheader("تحلیل دسته برای مدیر فروشگاه")
+    cats = list_categories()
+    cat = st.selectbox("دسته", cats, format_func=lambda c: CAT_FA.get(c, c))
+    min_lab = st.slider("حداقل تعداد نظر دارای برچسب (برای محصولات پرنظر)", 10, 200, 30, 10)
+
+    st.markdown("### ⚠️ محصولات پرنظر با درصد پیشنهاد پایین")
+    lr = low_recommend_products(cat, min_labeled=min_lab, top=10)
+    st.dataframe(pretty(lr.to_dict(orient="records")), use_container_width=True, hide_index=True)
+
+    st.markdown("### 🏷️ مقایسه‌ی برندها")
+    bs = brand_summary(cat, top=10).rename(columns={
+        "Brand": "برند", "n_products": "تعداد محصول", "n_labeled": "نظر دارای برچسب",
+        "recommended_pct": "درصد پیشنهاد", "avg_rate": "میانگین امتیاز", "avg_price": "میانگین قیمت"})
+    st.dataframe(bs.round(1), use_container_width=True, hide_index=True)
+
+    st.markdown("### 😕 پرتکرارترین شکایت‌ها")
+    tc = top_complaints(cat, top=10).rename(columns={
+        "phrase": "شکایت", "mentions": "تعداد ذکر", "n_products": "تعداد محصول",
+        "example_comment_ids": "شناسه‌ی نظرهای نمونه"})
+    if tc.empty:
+        st.info("برای این دسته شکایت پرتکرار پیدا نشد.")
+    else:
+        st.dataframe(tc, use_container_width=True, hide_index=True)
+    st.caption("همه‌ی اعداد از نظرات واقعی با کد حساب شده‌اند (بدون مدل زبانی).")

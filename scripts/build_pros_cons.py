@@ -6,7 +6,7 @@ import pandas as pd
 F = "data/raw/comments_clean.parquet"
 OUT = "data/processed/product_pros_cons.parquet"
 PLACEHOLDERS = {"ندارد", "نداره", "ندارم", "ندارن", "نداشت", "هیچ", "هیچی",
-                "هیچکدام", "هیچ کدام", "-", "."}
+                "هیچکدام", "هیچ کدام", "ندیدم", "نداشت", "ندیده", "-", "."}
 
 
 def clean(s):
@@ -55,4 +55,5 @@ print("ذخیره شد:", OUT, g.shape)
 print("محصولات دارای مزیت پرتکرار:", g[g.side == "advantage"].product_id.nunique())
 print("محصولات دارای عیب پرتکرار:", g[g.side == "disadvantage"].product_id.nunique())
 print(g[g.product_id == 134367].to_string())
+
 
