@@ -1,10 +1,12 @@
 ﻿import csv
+import logging
 import os
 import time
 from datetime import datetime
 
 from src.config import client
 
+logger = logging.getLogger("DigiSmart.LLM")
 LOG_PATH = "logs/api_log.csv"
 FIELDS = [
     "time", "task", "model", "latency_s",
@@ -37,20 +39,42 @@ def _record(task, model, latency, usage):
     })
 
 
-def chat(messages, model="openai/gpt-4o-mini", task="general", **kwargs):
-    """مثل client.chat.completions.create ولی زمان و هزینه را ثبت می‌کند."""
-    start = time.time()
-    resp = client.chat.completions.create(model=model, messages=messages, **kwargs)
-    _record(task, model, time.time() - start, resp.usage)
-    return resp
+def chat(messages, model="openai/gpt-4o-mini", task="general", max_retries=3, retry_delay=1.5, **kwargs):
+    """
+    مثل client.chat.completions.create همراه با لاگ هزینه، زمان و مدیریت خطای اتصال با مکانیزم Retry.
+    """
+    last_err = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            start = time.time()
+            resp = client.chat.completions.create(model=model, messages=messages, **kwargs)
+            _record(task, model, time.time() - start, resp.usage)
+            return resp
+        except Exception as e:
+            last_err = e
+            logger.warning(f"[{task}] تلاش {attempt}/{max_retries} ناموفق بود: {e}")
+            if attempt < max_retries:
+                time.sleep(retry_delay * attempt)
+    raise RuntimeError(f"خطا در فراخوانی LLM پس از {max_retries} تلاش: {last_err}") from last_err
 
 
-def embed(texts, model="openai/text-embedding-3-small", task="embedding"):
-    """مثل client.embeddings.create ولی زمان و هزینه را ثبت می‌کند."""
-    start = time.time()
-    resp = client.embeddings.create(model=model, input=texts)
-    _record(task, model, time.time() - start, resp.usage)
-    return resp
+def embed(texts, model="openai/text-embedding-3-small", task="embedding", max_retries=3, retry_delay=1.5):
+    """
+    مثل client.embeddings.create همراه با لاگ و مکانیزم Retry.
+    """
+    last_err = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            start = time.time()
+            resp = client.embeddings.create(model=model, input=texts)
+            _record(task, model, time.time() - start, resp.usage)
+            return resp
+        except Exception as e:
+            last_err = e
+            logger.warning(f"[{task}] تلاش {attempt}/{max_retries} در embedding ناموفق بود: {e}")
+            if attempt < max_retries:
+                time.sleep(retry_delay * attempt)
+    raise RuntimeError(f"خطا در فراخوانی Embedding پس از {max_retries} تلاش: {last_err}") from last_err
 
 
 def _log_cache_hit(task, model, latency):
