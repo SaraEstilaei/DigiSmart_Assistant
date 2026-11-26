@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import pandas as pd
 import streamlit as st
 
+from src.chat import chat_answer
 from src.compare import compare
 from src.manager import brand_summary, list_categories, low_recommend_products, top_complaints
 from src.product_search import search_products
@@ -52,7 +53,7 @@ st.markdown(
 )
 st.title("🛒 دستیار هوشمند خرید")
 
-tab_search, tab_compare, tab_manager = st.tabs(["🔍 جست‌وجوی محصول", "⚖️ مقایسه", "📊 تحلیل مدیر"])
+tab_chat, tab_search, tab_compare, tab_manager = st.tabs(["💬 دستیار", "🔍 جست‌وجوی محصول", "⚖️ مقایسه", "📊 تحلیل مدیر"])
 
 with tab_search:
     st.subheader("جست‌وجو با فیلتر")
@@ -135,3 +136,20 @@ with tab_manager:
     else:
         st.dataframe(tc, use_container_width=True, hide_index=True)
     st.caption("همه‌ی اعداد از نظرات واقعی با کد حساب شده‌اند (بدون مدل زبانی).")
+
+
+with tab_chat:
+    st.subheader("نیازت رو به فارسی بنویس")
+    q = st.text_area("مثلاً: یک کیف برای استفاده روزمره می‌خوام که خیلی گرون نباشه و خریدارها هم ازش راضی باشن", height=90)
+    if st.button("پیشنهاد بده", type="primary") and q.strip():
+        with st.spinner("در حال جست‌وجو..."):
+            st.session_state["chat_out"] = chat_answer(q.strip())
+    out = st.session_state.get("chat_out")
+    if out:
+        st.markdown(out["answer"])
+        if out["results"]:
+            st.dataframe(pretty(out["results"]), use_container_width=True, hide_index=True)
+        with st.expander("فیلترهای استخراج‌شده از پرسش"):
+            st.json(out["parsed"])
+        if out.get("relaxed"):
+            st.caption("چون نتیجه‌ها با دسته‌ی حدس‌زده‌شده کم بود، بدون دسته هم جست‌وجو شد.")
