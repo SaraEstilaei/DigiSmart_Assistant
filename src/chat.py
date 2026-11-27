@@ -54,6 +54,10 @@ def build_filters(d):
 
 def chat_answer(text, top_k=5):
     parsed = parse_query(text)
+    keys = ("keyword", "category", "max_price", "min_price", "min_rate", "brand")
+    if not any(parsed.get(k) for k in keys):
+        return {"parsed": parsed, "filters": {}, "results": [], "relaxed": False,
+                "answer": "نوع محصول مورد نظرت را متوجه نشدم. لطفاً بنویس دنبال چه چیزی هستی (مثلاً کیف، کتاب کودک یا لوازم آرایشی) و در صورت نیاز بازه‌ی قیمت."}
     filters = build_filters(parsed)
     kw = parsed.get("keyword") or ""
     results = search_products(kw, filters, top_k=top_k)
