@@ -95,7 +95,11 @@ with tab_compare:
             st.warning("حداقل دو شناسه‌ی معتبر وارد کن.")
         else:
             with st.spinner("در حال مقایسه..."):
-                out = compare(ids, need)
+                try:
+                    out = compare(ids, need)
+                except Exception:
+                    st.error("سرویس مدل زبانی پاسخ نداد. اینترنت و کلید API را چک کن و دوباره امتحان کن.")
+                    st.stop()
             if out["table"]:
                 st.dataframe(pretty(out["table"]), use_container_width=True, hide_index=True)
                 for r in out["table"]:
@@ -143,7 +147,11 @@ with tab_chat:
     q = st.text_area("مثلاً: یک کیف برای استفاده روزمره می‌خوام که خیلی گرون نباشه و خریدارها هم ازش راضی باشن", height=90)
     if st.button("پیشنهاد بده", type="primary") and q.strip():
         with st.spinner("در حال جست‌وجو..."):
-            st.session_state["chat_out"] = chat_answer(q.strip())
+            try:
+                st.session_state["chat_out"] = chat_answer(q.strip())
+            except Exception:
+                st.error("سرویس مدل زبانی پاسخ نداد. اینترنت و کلید API را چک کن و دوباره امتحان کن.")
+                st.stop()
     out = st.session_state.get("chat_out")
     if out:
         st.markdown(out["answer"])
